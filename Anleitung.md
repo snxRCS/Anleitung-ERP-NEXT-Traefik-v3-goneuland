@@ -1,24 +1,31 @@
-1. Grundvoraussetzung
+# ERPNext mit Traefik v3 und CrowdSec Installation
 
-    Docker & Docker Compose v2 (Debian / Ubuntu)
-    Traefik V3 Installation, Konfiguration und CrowdSec-Security
+## 1. Grundvoraussetzung
 
-2. Verzeichnise anlegen
+- Docker & Docker Compose v2 (Debian / Ubuntu)
+- Traefik V3 Installation, Konfiguration und CrowdSec-Security
+- Root oder Sudo-Zugriff
 
-Im ersten Schritt legen wir die Verzeichnise an.
-mkdir -p /opt/containers/erpnext/{data,compose} && cd /opt/containers/erpnext/
+## 2. Verzeichnisse anlegen
 
-3. Dateien Anlegen
+```bash
+mkdir -p /opt/containers/erpnext/{data,compose}
+cd /opt/containers/erpnext/
+```
 
-Danach erstellen wir die Dateien.
+## 3. Dateien erstellen
 
-touch .env docker-compose.yml \
-compose/erpnext.yml \
-/opt/containers/traefik-crowdsec-stack/data/traefik/dynamic_conf/http.middlewares.erpnext-headers.yml \
+```bash
+touch .env docker-compose.yml compose/erpnext.yml
+touch /opt/containers/traefik-crowdsec-stack/data/traefik/dynamic_conf/http.middlewares.erpnext-headers.yml
+```
 
-4. Inhalt der Dateien 
+## 4. Inhalt der Dateien
 
-.env
+### 4.1 `.env` Datei
+
+```env
+# filepath: /opt/containers/erpnext/.env
 
 # Absolute Path
 ABSOLUTE_PATH=/opt/containers/erpnext
@@ -30,26 +37,41 @@ FRAPPE_VERSION=v15.43.4
 # Timezone
 TZ=Europe/Berlin
 
-# Database Credentials - ÄNDERE DIESE!
+# Database Credentials - ÄNDERE DIESE ZU SICHEREN PASSWÖRTERN!
 DB_PASSWORD=ErpN3xt_DB_S3cur3_P@ssw0rd_2024!
 DB_ROOT_PASSWORD=ErpN3xt_R00t_Sup3r_S3cur3_P@ss_2024!
 
-# ERPNext Site Configuration
+# ERPNext Site Configuration - ÄNDERE DIESE ZU DEINER DOMAIN!
 SITE_NAME=erp.domain.de
 ADMIN_PASSWORD=ErpN3xt_Admin_Str0ng_P@ssw0rd!
 
-
 # Traefik Network
 TRAEFIK_NETWORK=proxy
+```
 
+**⚠️ Wichtig:** Ersetze folgende Werte:
+- `erp.domain.de` → Deine tatsächliche Domain
+- `DB_PASSWORD` → Starkes Passwort
+- `DB_ROOT_PASSWORD` → Starkes Passwort
+- `ADMIN_PASSWORD` → Starkes Passwort
 
-docker-compose.yml
+---
+
+### 4.2 `docker-compose.yml` Datei
+
+```yaml
+# filepath: /opt/containers/erpnext/docker-compose.yml
 
 include:
- - compose/erpnext.yml
+  - compose/erpnext.yml
+```
 
+---
 
-compose/erpnext.yml
+### 4.3 `compose/erpnext.yml` Datei
+
+```yaml
+# filepath: /opt/containers/erpnext/compose/erpnext.yml
 
 services:
   mariadb:
@@ -359,33 +381,59 @@ networks:
     driver: bridge
   proxy:
     external: true
+```
 
+---
 
-/opt/containers/traefik-crowdsec-stack/data/traefik/dynamic_conf/http.middlewares.erpnext-headers.yml
+### 4.4 Traefik Middleware Datei
+
+```yaml
+# filepath: /opt/containers/traefik-crowdsec-stack/data/traefik/dynamic_conf/http.middlewares.erpnext-headers.yml
 
 http:
   middlewares:
     erpnext-headers:
       headers:
         customRequestHeaders:
-          X-Frappe-Site-Name: "erp.snxrcs.me"
+          X-Frappe-Site-Name: "erp.domain.de"
           X-Forwarded-Proto: "https"
         customResponseHeaders:
           X-Frame-Options: "SAMEORIGIN"
           Referrer-Policy: "strict-origin-when-cross-origin"
+```
 
+**⚠️ Wichtig:** Ersetze `erp.domain.de` durch deine tatsächliche Domain!
 
-4. Nach dem Anlegen der Dateien
-Bitte beachte die Änderung der Domain in der middleware.
+---
 
+## 5. Traefik-CrowdSec-Stack neu starten
 
-Nach dem Anlegen und Anpassen der Middleware muss der Traefik-Crowedsec-Stack neu gestartet werden
+Nach dem Anlegen und Anpassen der Middleware-Datei den Traefik-Stack neu starten:
+
+```bash
 docker compose -f /opt/containers/traefik-crowdsec-stack/docker-compose.yml up -d --force-recreate
+```
 
-5. Nun kann man ERPNext starten. 
+---
 
+## 6. ERPNext starten
+
+```bash
 cd /opt/containers/erpnext
+docker compose up -d
+```
 
-docker compose up -d 
+**⏱️ Warte 5-10 Minuten** – Der erste Start dauert länger!
 
-Das kann jetzt 5-10 Minuten dauern. Danach sollte euer ERPNext unter eurer Domain erreichbar.
+Nach dem Start sollte ERPNext unter deiner Domain erreichbar sein: `https://erp.domain.de`
+
+---
+
+## 🎯 Zusammenfassung
+
+| Schritt | Befehl |
+|---------|--------|
+| Verzeichnisse anlegen | `mkdir -p /opt/containers/erpnext/{data,compose} && cd /opt/containers/erpnext/` |
+| Dateien erstellen | `touch .env docker-compose.yml compose/erpnext.yml` |
+| Traefik neu starten | `docker compose -f /opt/containers/traefik-crowdsec-stack/docker-compose.yml up -d --force-recreate` |
+| ERPNext starten | `docker compose up -d` |
