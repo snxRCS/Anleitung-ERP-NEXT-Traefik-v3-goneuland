@@ -2,8 +2,10 @@
 
 ## 1. Grundvoraussetzung
 
-- Docker & Docker Compose v2 (Debian / Ubuntu)
-- Traefik V3 Installation, Konfiguration und CrowdSec-Security
+- Docker & Docker Compose v2
+  - [Debian / Bullseye 11](https://goneuland.de/docker-docker-compose-v2-auf-debian-bullseye-11-installieren/)
+  - [Ubuntu 22.04 LTS](https://goneuland.de/docker-docker-compose-v2-auf-ubuntu-22-04-lts-installieren/)
+  - [Traefik V3 Installation, Konfiguration und CrowdSec-Security](https://goneuland.de/traefik-v3-installation-konfiguration-und-crowdsec-security/)
 - Root oder Sudo-Zugriff
 
 ## 2. Verzeichnisse anlegen
