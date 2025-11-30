@@ -1,0 +1,10 @@
+http:
+  middlewares:
+    erpnext-headers:
+      headers:
+        customRequestHeaders:
+          X-Frappe-Site-Name: "erpnext.domain.de" // Bitte anpassen auf die gewünschte Domain
+          X-Forwarded-Proto: "https"
+        customResponseHeaders:
+          X-Frame-Options: "SAMEORIGIN"
+          Referrer-Policy: "strict-origin-when-cross-origin"
