@@ -24,7 +24,158 @@ touch /opt/containers/traefik-crowdsec-stack/data/traefik/dynamic_conf/http.midd
 
 ## 4. Inhalt der Dateien
 
+# ERPNext mit Traefik v3 und CrowdSec Installation
+
+## 1. Grundvoraussetzung
+
+- Docker & Docker Compose v2
+  - [Debian / Bullseye 11](https://goneuland.de/docker-docker-compose-v2-auf-debian-bullseye-11-installieren/)
+  - [Ubuntu 22.04 LTS](https://goneuland.de/docker-docker-compose-v2-auf-ubuntu-22-04-lts-installieren/)
+  - [Traefik V3 Installation, Konfiguration und CrowdSec-Security](https://goneuland.de/traefik-v3-installation-konfiguration-und-crowdsec-security/)
+- Root oder Sudo-Zugriff
+
+## 2. Verzeichnisse anlegen
+
+```bash
+mkdir -p /opt/containers/erpnext/{data,compose}
+cd /opt/containers/erpnext/
+```
+
+## 3. Dateien erstellen
+
+```bash
+touch .env docker-compose.yml compose/erpnext.yml
+touch /opt/containers/traefik-crowdsec-stack/data/traefik/dynamic_conf/http.middlewares.erpnext-headers.yml
+```
+
+## 4. Inhalt der Dateien
+
 ### 4.1 `.env` Datei
+
+```env
+# filepath: /opt/containers/erpnext/.env
+
+# Absolute Path
+ABSOLUTE_PATH=/opt/containers/erpnext
+
+# ERPNext Configuration
+ERPNEXT_VERSION=v15.43.3
+FRAPPE_VERSION=v15.43.4
+
+# Timezone
+TZ=Europe/Berlin
+
+# Database Credentials - ÄNDERE DIESE ZU SICHEREN PASSWÖRTERN!
+DB_PASSWORD=<SECURE_DB_PASSWORD>
+DB_ROOT_PASSWORD=<SECURE_DB_ROOT_PASSWORD>
+
+# ERPNext Site Configuration - ÄNDERE DIESE ZU DEINER DOMAIN!
+SITE_NAME=<YOUR_DOMAIN>
+ADMIN_PASSWORD=<SECURE_ADMIN_PASSWORD>
+
+# Traefik Network
+TRAEFIK_NETWORK=proxy
+```
+
+**⚠️ Wichtig:** Ersetze folgende Platzhalter mit deinen Werten:
+- `<YOUR_DOMAIN>` → Deine tatsächliche Domain (z.B. `erp.example.de`)
+- `<SECURE_DB_PASSWORD>` → Starkes Datenbankpasswort (mindestens 16 Zeichen, Groß- und Kleinbuchstaben, Zahlen, Sonderzeichen)
+- `<SECURE_DB_ROOT_PASSWORD>` → Starkes Root-Passwort (mindestens 16 Zeichen, Groß- und Kleinbuchstaben, Zahlen, Sonderzeichen)
+- `<SECURE_ADMIN_PASSWORD>` → Starkes Admin-Passwort (mindestens 16 Zeichen, Groß- und Kleinbuchstaben, Zahlen, Sonderzeichen)
+
+---
+
+### 4.2 `docker-compose.yml` Datei
+
+```yaml
+# filepath: /opt/containers/erpnext/docker-compose.yml
+
+include:
+  - compose/erpnext.yml
+```
+
+---
+
+### 4.3 `compose/erpnext.yml` Datei
+
+```yaml
+# filepath: /opt/containers/erpnext/compose/erpnext.yml
+
+services:
+  mariadb:
+    image: mariadb:10.6
+    container_name: erpnext-db
+    hostname: erpnext-db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+      - --bind-address=0.0.0.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - ${ABSOLUTE_PATH}/data/mariadb:/var/lib/mysql
+    networks:
+      - erpnext-internal
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis-cache:
+    image: redis:7-alpine
+    container_name: erpnext-redis-cache
+    hostname: erpnext-redis-cache
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+    networks:
+      - erpnext-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  redis-queue:
+    image: redis:7-alpine
+    container_name: erpnext-redis-queue
+    hostname: erpnext-redis-queue
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+    networks:
+      - erpnext-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  redis-socketio:
+    image: redis:7-alpine
+    container_name: erpnext-redis-socketio
+    hostname: erpnext-redis-socketio
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+    networks:
+      - erpnext-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  configurator:
+    image: frappe/erpnext:${ERPNEXT_VERSION}
+    container_name: erpnext-configurator
+    hostname:
 
 ```env
 # filepath: /opt/containers/erpnext/.env
